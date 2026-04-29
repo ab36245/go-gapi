@@ -1,8 +1,23 @@
 package gmail
 
 import (
+	"fmt"
 	"strings"
 )
+
+func getLabels(client *Client) (Labels, error) {
+	req := client.gservice.Users.Labels.List("me")
+	res, err := req.Do()
+	if err != nil {
+		return nil, fmt.Errorf("can't get labels: %w", err)
+	}
+
+	var labels []Label
+	for _, glabel := range res.Labels {
+		labels = append(labels, Label{glabel})
+	}
+	return labels, nil
+}
 
 type Labels []Label
 

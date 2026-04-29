@@ -9,76 +9,96 @@ import (
 )
 
 type Part struct {
-	gpart *gmail.MessagePart
-	msg   *Msg
+	msg     *Msg
+	gpart   *gmail.MessagePart
+	headers Headers
 }
 
-func (p *Part) Body() ([]byte, error) {
-	mid := p.msg.Id()
-	id := p.gpart.Body.AttachmentId
+func (p Part) Body() ([]byte, error) {
 	data := p.gpart.Body.Data
-	if id != "" {
-		service := p.msg.client.service.Users.Messages.Attachments
-		req := service.Get("me", p.msg.Id(), id)
-		res, err := req.Do()
-		if err != nil {
-			return nil, fmt.Errorf("can't get attachment (msg %s, id %s): %w", mid, id, err)
+	{
+		attachmentId := p.gpart.Body.AttachmentId
+		if attachmentId != "" {
+			service := p.msg.client.gservice.Users.Messages.Attachments
+			body, err := service.Get("me", p.msg.Id(), attachmentId).Do()
+			if err != nil {
+				return nil, p.wrap(err, "can't get attachment id %s", attachmentId)
+			}
+			data = body.Data
 		}
-		data = res.Data
 	}
-	bytes, err := base64.URLEncoding.DecodeString(data)
-	if err != nil {
-		return nil, fmt.Errorf("can't decode message body (msg %s id %s): %w", mid, id, err)
+
+	var bytes []byte
+	{
+		var err error
+		bytes, err = base64.URLEncoding.DecodeString(data)
+		if err != nil {
+			return nil, p.wrap(err, "can't decode message body")
+		}
 	}
+
 	return bytes, nil
 }
 
-func (p *Part) Filename() string {
-	return p.gpart.Filename
+func (p Part) ContentDisposition() string {
+	return p.Header("Content-Disposition")
 }
 
-func (p *Part) Header(name string) string {
-	for _, gheader := range p.gpart.Headers {
-		if strings.EqualFold(gheader.Name, name) {
-			return gheader.Value
+func (p Part) ContentTransferEncoding() string {
+	return p.Header("Content-Transfer-Encoding")
+}
+
+func (p Part) ContentType() string {
+	return p.Header("Content-Type")
+}
+
+func (p Part) FileName() string {
+	name := p.gpart.Filename
+	// Sanitize the file name
+	name = strings.ReplaceAll(name, "/", "_")
+	name = strings.ReplaceAll(name, "\\", "_")
+	return name
+}
+
+func (p Part) Header(name string) string {
+	for _, h := range p.headers {
+		if h.MatchesName(name) {
+			return h.Value
 		}
 	}
 	return ""
 }
 
-func (p *Part) Headers() []PartHeader {
-	var headers []PartHeader
-	for _, gheader := range p.gpart.Headers {
-		header := PartHeader{
-			Name:  gheader.Name,
-			Value: gheader.Value,
-		}
-		headers = append(headers, header)
-	}
-	return headers
+func (p Part) Headers() Headers {
+	return p.headers
 }
 
-func (p *Part) Id() string {
+func (p Part) Id() string {
 	return p.gpart.PartId
 }
 
-func (p *Part) MimeType() string {
+func (p Part) MimeType() string {
 	return p.gpart.MimeType
 }
 
-func (p *Part) String() string {
-	s := ""
-	s += fmt.Sprintf("Id: %s\n", p.Id())
-	s += fmt.Sprintf("Filename: %s\n", p.Filename())
-	s += "Headers:\n"
-	for _, h := range p.Headers() {
-		s += fmt.Sprintf("  %s: %s\n", h.Name, h.Value)
-	}
-	s += fmt.Sprintf("MimeType: %s\n", p.MimeType())
-	return s
+func (p Part) MimeVersion() string {
+	return p.Header("MimeVersion")
 }
 
-type PartHeader struct {
-	Name  string
-	Value string
+func (p Part) Size() int64 {
+	return p.gpart.Body.Size
+}
+
+func (p Part) id() string {
+	id := p.Id()
+	if id == "" {
+		id = "main"
+	}
+	return fmt.Sprintf("%s, part %s", p.msg.id(), id)
+}
+
+func (p Part) wrap(err error, str string, args ...any) error {
+	id := p.id()
+	str = fmt.Sprintf(str, args...)
+	return fmt.Errorf("%s: %s: %w", id, str, err)
 }

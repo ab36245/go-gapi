@@ -41,5 +41,13 @@ func (l Label) Name() string {
 }
 
 func (l Label) String() string {
-	return fmt.Sprintf("%s (%s)", l.Name(), l.Id())
+	if l.IsInvalid() {
+		return "<invalid>"
+	}
+	id := l.Id()
+	name := l.Name()
+	if id == name {
+		return id
+	}
+	return fmt.Sprintf("%s (%s)", name, id)
 }

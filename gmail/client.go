@@ -167,7 +167,6 @@ func (c *Client) Raw(id string) ([]byte, error) {
 		}
 		encoded = gmessage.Raw
 	}
-	// fmt.Printf("id %s raw %s\n", id, raw)
 
 	var decoded []byte
 	{

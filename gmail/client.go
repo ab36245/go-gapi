@@ -2,6 +2,7 @@ package gmail
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"iter"
 
@@ -151,4 +152,30 @@ func (c *Client) Msg(id string) (*Msg, error) {
 	}
 
 	return msg, nil
+}
+
+func (c *Client) Raw(id string) ([]byte, error) {
+	var encoded string
+	{
+		var gmessage *gmail.Message
+		req := c.gservice.Users.Messages.Get("me", id)
+		req.Format("RAW")
+		var err error
+		gmessage, err = req.Do()
+		if err != nil {
+			return nil, fmt.Errorf("message %s: can't get message: %w", id, err)
+		}
+		encoded = gmessage.Raw
+	}
+	// fmt.Printf("id %s raw %s\n", id, raw)
+
+	var decoded []byte
+	{
+		var err error
+		decoded, err = base64.URLEncoding.DecodeString(encoded)
+		if err != nil {
+			return nil, fmt.Errorf("message %s: can't decode: %w", id, err)
+		}
+	}
+	return decoded, nil
 }

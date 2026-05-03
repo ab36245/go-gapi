@@ -3,7 +3,7 @@ module github.com/ab36245/go-gapi
 go 1.25.0
 
 require (
-	github.com/ab36245/go-pkgs v0.0.0-20250216013300-866d3b9908c1
+	github.com/ab36245/go-mimeext v0.0.0-20250726052650-cb7d875473b1
 	golang.org/x/oauth2 v0.36.0
 	google.golang.org/api v0.272.0
 )
@@ -12,7 +12,6 @@ require (
 	cloud.google.com/go/auth v0.18.2 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
-	github.com/ab36245/go-mimeext v0.0.0-20250726052650-cb7d875473b1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
